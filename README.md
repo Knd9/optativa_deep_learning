@@ -1,4 +1,4 @@
-# Trabajo de Aprendizaje Profundo
+# Primer Trabajo de Aprendizaje Profundo
 
 > Aplicación de lo aprendido en la materia optativa **Aprendizaje Profundo** de la Diplomatura en Ciencias de Datos FaMAFyC 2022.
 
@@ -46,11 +46,11 @@ Como en este caso trabajamos con secuencias de palabras (representadas por sus �
 
 ## Clase para el modelo
 
-Para la clasificación utilizaremos un modelo de red perceptrón multicapa de cuatro capas ocultas, no profundizamos mucho para esta desición, entendimos que es arbitraria fuera de que el input y output obliguen a que al menos haya dos capas ocultas, y luego de explorar se podía decidir mejor.
+Para la clasificación utilizaremos un modelo de red perceptrón multicapa de cuatro capas ocultas. No profundizamos mucho para esta desición, entendimos que es arbitraria fuera de que el input y output obliguen a que al menos haya dos capas ocultas, y luego de explorar se podía decidir mejor.
 
-En particular, tenemos la primera capa de `embeddings` que es rellenada con los valores de **word embeddings** (conversión del texto a una representación por vectores) continuos preentrenados en español de [SBW](https://crscardellino.ar/SBWCE/), de 300 dimensiones, en formato bz2, por eso utilizamos la librería `bz2` para descomprimir el archivo que los contiene (descargado en la carpata `data`). A su vez instanciamos el resto de las capas de la red con los tamaños pasados como argumento.
+En particular, tenemos la primera capa de `embeddings` que es rellenada con los valores de **word embeddings** (conversión del texto a una representación por vectores) continuos preentrenados en español de [SBW](https://crscardellino.ar/SBWCE/), de 300 dimensiones (descargado en la carpata `data`). Estos están en formato bz2, por lo cual con la librería `bz2` pudimos  descomprimir el archivo que los contiene. A su vez instanciamos el resto de las capas de la red con los tamaños pasados como argumento.
 
-Además en la función de *forward*, aplicamos la matriz de embeddings ya creada al input, estandarizamos el ancho de la matriz (ya que el MLP lo necesita) con el promedio de cada vector de la matriz tensor, luego al resultado le aplicamos la función de activación `Relu` (escuchado en clase que es la que más se utiliza) a lo largo de las capas ocultas de la red, y luego aplicamos la capa del output.
+Además en la función de *forward*, aplicamos la matriz de embeddings ya creada al input, estandarizamos el ancho de la matriz (ya que el MLP lo necesita) con el promedio de cada vector de la matriz tensor, luego al resultado le aplicamos la función de activación `Relu` (mencionado en clase que es la que más se utiliza) a lo largo de las capas ocultas de la red, y luego aplicamos la capa del output.
 
 ### 1ra Parte: Red Perceptrón Multicapa
 
@@ -62,17 +62,17 @@ Además en la función de *forward*, aplicamos la matriz de embeddings ya creada
 
 * **test_model**: evaluamos y predecimos con el conjunto de test y reportamos la métrica de `balance_accuracy` para este conjunto.
 
-y
+y dos donde usamos MLFlow:
 
 * **run_experiment**: ejecutamos un run del experimento; asignamos la función de pérdida `CrossEntropyLoss` al trabajar con un problema multiclase, llamamos a `train_and_eval` y a `train_model` con los dataloaders pasados y, si se desea además testear, llamamos a `test_model`. Registramos los **hiperparámetros**: la arquitectura del modelo, la función de pérdida, las épocas, la taza de aprendizaje y el optimizador.
 
-* **run__mlflow_experiment**: ejecutamos un experimento; instanciamos el modelo pasando como parámetros el archivo de word embeddings, los datos tokenizados, el tamaño de vector (el tamaño de los embeddings, 300), el uso de barras de progreso activado, y los tamaños de las capas. Enviamos el modelo a GPU y loguemos los **hiperparámetros**. Corremos el run con los dataloaders de entrenamiento y validación y, si se desea testear, agregamos el dataloader de test. Por último logueamos las métricas devueltas del run en MLFlow y calculamos las predicciones de a batches guardandolas en un archivo nuevo comprimido como artefacto de MLFlow.
+* **run__mlflow_experiment**: ejecutamos un experimento; instanciamos el modelo pasando como parámetros el archivo de word embeddings, los datos tokenizados, el tamaño de vector (el tamaño de los embeddings, 300), el uso de barras de progreso activado, y los tamaños de las capas. Enviamos el modelo a GPU y loguemos los **hiperparámetros**. Corremos el run con los dataloaders de entrenamiento y validación y, si se desea testear, agregamos el dataloader de test. Por último logueamos las métricas devueltas del run en MLFlow y calculamos las predicciones de a batches guardándolas en un archivo nuevo comprimido como artefacto de MLFlow.
 
 Por último, creamos dos experimentos en MLFlow:
 
-* `experiment_w_3_epochs_l4`: para las etapas de entrenamiento y validación, el cual comprimimos en `data/op_experiments_w_3epochs_4l.csv.gz`
+* `experiment_w_3_epochs_l4`: para las etapas de entrenamiento y validación, el cual se comprime.
 
-* `test_experiment_w_3_epochs`: para la etapa de testeo, el cual comprimimos en `data/test_op_experiments_w_3epochs_4l.csv.gz`.
+* `test_experiment_w_3_epochs`: para la etapa de testeo, el cual se comprime.
 
 ### Arquitectura e hiperparámetros:
 
@@ -85,7 +85,7 @@ En todos los runs del experimento hicimos una red perceptrón multicapa de 4 cap
 
 Además, utilizamos `3` **épocas**, de forma arbitraria considerando que es un mínimo para agilizar el modelo.
 
-Variamos a modo de exploración un poco aleatoria el **optimizador** y la **taza de aprendizaje**, si bien optamos por los dos optimizadores que se mencionaron más usuales en clase (`Adam` y `RMSprop`), y distintos valores de tazas de aprendizaje que reducimos a cantidad de dos debido a la gran demora en tiempo de ejecución y problemas de conexión con la máquina externa proporcionada que aumentaban el tiempo de dedicación al trabajo. Sin embargo anteriormente, probando con valores mayores de taza de aprendizaje nos dimos cuenta que a medida que aumentaba el valor se reducía el rendimiento del modelo, por lo cual, escogimos dos valores que ya devolvían diferencias grandes de métricas (`0.0001` y `0.001`).
+Variamos a modo de exploración algo aleatoria el **optimizador** y la **taza de aprendizaje**, si bien optamos por los dos optimizadores que se mencionaron más usuales en clase (`Adam` y `RMSprop`), y distintos valores de tazas de aprendizaje que reducimos a cantidad de dos (`0.0001` y `0.001`) debido a la gran demora en tiempo de ejecución y problemas de conexión con la máquina externa proporcionada que aumentaban el tiempo de dedicación al trabajo. Sin embargo, probando anteriormente con valores mayores de taza de aprendizaje nos dimos cuenta que a medida que aumentaba el valor se reducía el rendimiento del modelo, por lo cual, escogimos dos valores que ya devolvían diferencias grandes de la métrica considerada.
 
 ### Experimento de Entrenamiento y Validación
 
@@ -103,7 +103,7 @@ Variamos a modo de exploración un poco aleatoria el **optimizador** y la **taza
 
 <img src='https://drive.google.com/uc?id=1vtayyBbdGVGmQmy7VsCBKYZhwoJEw56-' name='MetricasGeneral'>
 
-> Comparación de **loss** a través de las 3 épocas entrenamiento y validación
+> Comparación de **loss** a través de las 3 épocas en entrenamiento y validación
 
 <img src='https://drive.google.com/uc?id=1z84GJLy4O_fcD8exVrw3eTEs228znyiP' name='train_loss'>
 
@@ -172,11 +172,17 @@ Variamos a modo de exploración un poco aleatoria el **optimizador** y la **taza
 
 <img src='https://drive.google.com/uc?id=1hLwrnUcLn5mMSwK2XkgqT6S1zVHk_Xov' name='TestMetricas'>
 
+
+## Conclusión general
+
+* Se logró obtener un buen valor de la métrica `balanced_accuracy` con el conjunto de test `0.81`.
+* Como próximos pasos, luego de haber obtenido un resultado que consideramos satisfactorio, la idea sería ver si con una red más compleja los valores obtenidos para balanced_accuracy pueden incrementarse. [Ver 2da Parte](https://github.com/FCardellino/DeepLearning).
+
 ## Contenido:
 
-* TP_AprendizajeProfundo.ipynb: Jupyter Notebook con el trabajo resuelto.
-* README.md: Informe del trabajo presentado
-* Directorio data:
+* `TP_AprendizajeProfundo.ipynb`: Jupyter Notebook con el trabajo resuelto.
+* `README.md`: Informe del trabajo presentado
+* Directorio `data`:
   - Directorio `experiments`: contiene los experimentos comprimidos `op_experiments_w_3epochs_4l.csv.gz` y `test_op_experiments_w_3epochs_4l.csv.gz`
 
 ## Notas:
@@ -186,6 +192,8 @@ Variamos a modo de exploración un poco aleatoria el **optimizador** y la **taza
   - Directorio `meli-challenge-2019`: datasets del Melli Challenge 2019. Conjuntos a utilizar referentes a entrenamiento, validación y test en español y su concatenación, respectivamente: `spanish.train.jsonl.gz`, `spanish.validation.jsonl.gz`, `spanish.test.jsonl.gz`, `spanish_token_to_index.json.gz`
 
   - `SBW-vectors-300-min5.txt.bz2`: archivo de Word Embeddings utilizado
+
+  - Los experimentos comprimidos resultantes de una nueva ejecución se guardarán en el directorio `data/`. Los obtenidos para esta entrega se guardaron en el directorio `experiments` para que no colisionen los nombres durante otra ejecución y se pueda continuar con la misma.
 
 * Se utilizó la máquina externa nabucodonosor proporcionada para ejecutar el trabajo con recursos más grandes. Se puede acceder a la misma y ejecutarlo entrando a la terminal y corriendo:
 
