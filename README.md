@@ -26,7 +26,7 @@ Para cada conjunto, vimos:
 
 ## Preprocesamiento y tokenización de los datos
 
-Luego de encontrar que los conjuntos a tratar ya están preprocesados y tokenizados, con las columnas `data` referente a **title** y `target` referente a **category**, no fue necesario hacer un preprocesamiento y tokenización, con acceder a estas columnas bastaba. El procedimiento de este desarrollo se encuentra en el repositorio de la materia en el archivo *experiment/preprocess_meli_data.ipynb*, donde también se puede encontrar el origen de otras columnas como `tokenized_title`, `n_labels` y `size`.
+Luego de encontrar que los conjuntos a tratar ya están preprocesados y tokenizados, con las columnas `data` referente a **title** y `target` referente a **category**, no fue necesario hacer un preprocesamiento y tokenización, con acceder a estas columnas bastaba. El procedimiento de este desarrollo se encuentra en el repositorio de la materia en el archivo [experiment/preprocess_meli_data](https://github.com/DiploDatos/AprendizajeProfundo/blob/master/experiment/preprocess_meli_data.ipynb).ipynb*, donde también se puede encontrar el origen de otras columnas como `tokenized_title`, `n_labels` y `size`.
 
 Básicamente, primero se concatenan los 3 conjuntos para evitar que el proceso en los datos no asigne el mismo token a la misma palabra en los distintos conjuntos (train/validation vs test) y ser una posible causa de un bajo rendimiento en el conjunto de test. Para el **preprocesamiento** se utilizan los módulos `stopwords`, `word_tokenize` de la librería `nltk` y el módulo `preprocessing` de la librería `gensim` los conjuntos concatenados. En cuanto a la **tokenización** que sigue, se utiliza el modelo `Dictionary` de el módulo `corpora` de la librería `gensim` y varios métodos de este modelo para lograrlo.
 
@@ -34,7 +34,7 @@ Como resultado se guarda por un lado, el conjunto *spanish_token_to_index.json.g
 
 ## Manejador del dataset
 
-Creamos una clase para modelar un conjunto de datos (cualquiera de os 3 que se instancie), que hereda de la clase `IterableDataset` de PyTorch, que si bien, no permite hacer shuffling de datos de forma fácil como la clase `Dataset` de Pytorch, el conjunto de datos es bastante grande (y podría serlo aún más en otro año para levantarlo en memoria).
+Creamos una clase para modelar un conjunto de datos (cualquiera de los 3 que se instancie), que hereda de la clase `IterableDataset` de PyTorch. Si bien, no permite hacer shuffling de datos de forma fácil como la clase `Dataset` de Pytorch, el conjunto de datos es bastante grande (y podría serlo aún más en otro año para levantarlo en memoria).
 
 Instanciamos los 3 conjuntos de datos con este módulo.
 
@@ -46,11 +46,11 @@ Como en este caso trabajamos con secuencias de palabras (representadas por sus �
 
 ## Clase para el modelo
 
-Para la clasificación utilizaremos un modelo de red perceptrón multicapa de cuatro capas ocultas. No profundizamos mucho para esta desición, entendimos que es arbitraria fuera de que el input y output obliguen a que al menos haya dos capas ocultas, y luego de explorar se podía decidir mejor.
+Para la clasificación utilizamos un modelo de red perceptrón multicapa que cuenta con 4 capas ocultas. No profundizamos mucho para esta desición, entendimos que es arbitraria fuera de que el input y output obliguen a que al menos haya dos capas ocultas, y luego de explorar se podía decidir mejor.
 
 En particular, tenemos la primera capa de `embeddings` que es rellenada con los valores de **word embeddings** (conversión del texto a una representación por vectores) continuos preentrenados en español de [SBW](https://crscardellino.ar/SBWCE/), de 300 dimensiones (descargado en la carpata `data`). Estos están en formato bz2, por lo cual con la librería `bz2` pudimos  descomprimir el archivo que los contiene. A su vez instanciamos el resto de las capas de la red con los tamaños pasados como argumento.
 
-Además en la función de *forward*, aplicamos la matriz de embeddings ya creada al input, estandarizamos el ancho de la matriz (ya que el MLP lo necesita) con el promedio de cada vector de la matriz tensor, luego al resultado le aplicamos la función de activación `Relu` (mencionado en clase que es la que más se utiliza) a lo largo de las capas ocultas de la red, y luego aplicamos la capa del output.
+Además en la función de *forward*, aplicamos la matriz de embeddings ya creada al input y estandarizamos el ancho de la matriz (ya que el MLP lo necesita) con el promedio de cada vector de la matriz tensor. Posteriormente, aplicamos al resultado la función de activación `Relu` (mencionado en clase que es la que más se utiliza) a lo largo de las capas ocultas de la red, y luego aplicamos la capa del output.
 
 ### 1ra Parte: Red Perceptrón Multicapa
 
@@ -62,13 +62,13 @@ Además en la función de *forward*, aplicamos la matriz de embeddings ya creada
 
 * **test_model**: evaluamos y predecimos con el conjunto de test y reportamos la métrica de `balance_accuracy` para este conjunto.
 
-y dos donde usamos MLFlow:
+y dos funciones más donde usamos MLFlow:
 
 * **run_experiment**: ejecutamos un run del experimento; asignamos la función de pérdida `CrossEntropyLoss` al trabajar con un problema multiclase, llamamos a `train_and_eval` y a `train_model` con los dataloaders pasados y, si se desea además testear, llamamos a `test_model`. Registramos los **hiperparámetros**: la arquitectura del modelo, la función de pérdida, las épocas, la taza de aprendizaje y el optimizador.
 
 * **run__mlflow_experiment**: ejecutamos un experimento; instanciamos el modelo pasando como parámetros el archivo de word embeddings, los datos tokenizados, el tamaño de vector (el tamaño de los embeddings, 300), el uso de barras de progreso activado, y los tamaños de las capas. Enviamos el modelo a GPU y loguemos los **hiperparámetros**. Corremos el run con los dataloaders de entrenamiento y validación y, si se desea testear, agregamos el dataloader de test. Por último logueamos las métricas devueltas del run en MLFlow y calculamos las predicciones de a batches guardándolas en un archivo nuevo comprimido como artefacto de MLFlow.
 
-Por último, creamos dos experimentos en MLFlow:
+Por último, creamos dos experimentos:
 
 * `experiment_w_3_epochs_l4`: para las etapas de entrenamiento y validación, el cual se comprime.
 
@@ -76,7 +76,7 @@ Por último, creamos dos experimentos en MLFlow:
 
 ### Arquitectura e hiperparámetros:
 
-En todos los runs del experimento hicimos una red perceptrón multicapa de 4 capas ocultas con los siguientes tamaños:
+En todos los runs del experimento hacemos una red perceptrón multicapa de 4 capas ocultas con los siguientes tamaños:
 
 * 1024 para la primera capa, considerando que el tamaño de input es 300, vamos aumentando las dimensiones
 * 2048 para la segunda capa oculta
@@ -175,14 +175,14 @@ Variamos a modo de exploración algo aleatoria el **optimizador** y la **taza de
 
 ## Conclusión general
 
-* Se logró obtener un buen valor de la métrica `balanced_accuracy` con el conjunto de test `0.81`.
+* Se logró obtener un buen valor de la métrica `balanced_accuracy` con el conjunto de test: **0.81**.
 * Como próximos pasos, luego de haber obtenido un resultado que consideramos satisfactorio, la idea sería ver si con una red más compleja los valores obtenidos para balanced_accuracy pueden incrementarse. [Ver 2da Parte](https://github.com/FCardellino/DeepLearning).
 
 ## Contenido:
 
 * `TP_AprendizajeProfundo.ipynb`: Jupyter Notebook con el trabajo resuelto.
 * `README.md`: Informe del trabajo presentado
-* Directorio `data`:
+* Directorio `data/`:
   - Directorio `experiments`: contiene los experimentos comprimidos `op_experiments_w_3epochs_4l.csv.gz` y `test_op_experiments_w_3epochs_4l.csv.gz`
 
 ## Notas:
